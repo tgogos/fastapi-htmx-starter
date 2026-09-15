@@ -4,6 +4,8 @@ Boilerplate for a **server-driven web UI with FastAPI + HTMX** (no SPA, no Node 
 
 Browsers get HTML (Jinja + [Pico CSS](https://picocss.com/) + [HTMX](https://htmx.org/)). Machines get `/api` with Bearer tokens. One user store, Docker Compose, pytest.
 
+**UI approach:** HTML-first hypermedia (server-rendered pages + HTMX fragments; small vanilla JS islands). Deliberately not an SPA — see [`docs/ENGINEERING.md`](docs/ENGINEERING.md) § UI architecture.
+
 Architecture and conventions: [`docs/ENGINEERING.md`](docs/ENGINEERING.md).  
 Sessions, CSRF, and Bearer explained: [`docs/auth.md`](docs/auth.md).
 

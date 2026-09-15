@@ -9,6 +9,32 @@ This file is the source of truth for architecture and conventions. When a decisi
 - Mature shape (clear modules, auth, tests, Docker) without shortcuts that fight growth.
 - One primary full-stack path; optional demos stay thin and removable.
 - Async-first; raw SQL (no ORM); Pydantic at the HTTP edge only.
+- **HTML-first / HTMX** for the browser UI; `/api` JSON for machines. Not an SPA.
+
+## UI architecture (HTML-first)
+
+Prefer boring, server-driven UI over client frameworks. Concrete HTMX usage is under **HTMX patterns in use**.
+
+### Principles
+
+| Principle | Meaning |
+|-----------|---------|
+| **Server owns the truth** | Pages and HTMX fragments are the UI. Do not grow a client-side app store or SPA router. |
+| **HTML first** | First paint and list/filter/mutation flows are server-rendered HTML (Jinja + Pico). |
+| **HTMX for interaction** | Search, filters, pagination, and forms use HTMX swaps. |
+| **Small JS islands** | Vanilla JS only where the browser must own a bit of widget state (confirm modal, toasts, CSRF header on HTMX). Prefer one focused script (`app/web/static/js/app.js`). |
+| **Progressive enhancement** | Pagination links keep usable `href`s; forms still work without JS where practical. |
+| **Shareable URLs** | List/search use `hx-push-url`. |
+
+### What not to add by default
+
+- **No Alpine, React, Vue, Svelte, or similar** — local reactivity is not a reason. Add a client library only when a concrete widget cannot be done with HTMX + a small vanilla island, and document why in this file in the same change.
+- **No SPA routing or frontend build step** — no Vite/Webpack app shell; static CSS/JS under `app/web/static/` is enough.
+- **No client i18n framework** — if i18n lands, prefer server-side templates.
+
+### Island boundary
+
+Use an island when interaction is inherently client-side (dialog, toast DOM, attaching a request header). Prefer HTMX when the server can return the next HTML fragment. Do not move list/table/form flows into islands “for speed.”
 
 ## Product shape
 
@@ -88,6 +114,8 @@ Books include scalars (`category`, `isbn`, `page_count`, `available`) and `added
 
 ### HTMX patterns in use
 
+See **UI architecture** for the HTML-first contract. Patterns below are what this starter actually ships (Pico + `app.js`). Do not add Idiomorph, `hx-boost` shells, or OOB toasts unless they land in code and this file in the same change.
+
 - **`HX-Request` dual response** — one list route returns the full page or `partials/books_table.html`.
 - **Search** — `q` on title/author/ISBN with debounce + `hx-push-url`. Keep the search/filter form **outside** the HTMX swap target so inputs are not replaced (focus stays while typing).
 - **Advanced filters** — `/ui/books/search`: selects + debounced text update live; year inputs update on `change`/explicit Apply (avoid mid-typing requests). Active filter chips render inside the results partial. Delete keeps filter query params via `return_to`.
@@ -96,8 +124,6 @@ Books include scalars (`category`, `isbn`, `page_count`, `available`) and `added
 - Progressive enhancement: pagination links keep usable `href`s.
 - **Confirm modal** — Pico `<dialog>` + small JS (`app/web/static/js/app.js`); delete buttons use `hx-trigger="confirmed-delete"` after the user confirms (no `window.confirm`).
 - **Toasts** — minimal custom CSS toasts; server sets `HX-Trigger: {"showToast": {...}}` (e.g. after delete).
-
-Out of scope for now (do not add without updating this doc): Alpine.js, HTMX out-of-band (`hx-swap-oob`) swaps, i18n.
 
 ## Authentication
 
@@ -142,8 +168,9 @@ Implemented: session + CSRF for the UI and for session-authenticated `/api` writ
 Unless this document is updated first:
 
 - ORMs and sync DB drivers for the primary path
-- SPA frameworks or a frontend build step (vanilla JS + HTMX + Pico)
-- Alpine.js, HTMX OOB swaps, i18n
+- SPA frameworks, SPA routers, or a frontend build step (vanilla JS + HTMX + Pico)
+- Alpine.js / React / Vue / Svelte (or similar) unless a concrete widget forces an island and this doc is updated
+- HTMX out-of-band (`hx-swap-oob`) swaps, client-side i18n libraries
 - OAuth2 / OIDC providers
 - JWT as the default API token
 - Django-style generic admin
