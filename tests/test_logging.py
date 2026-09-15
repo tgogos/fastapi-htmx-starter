@@ -79,3 +79,13 @@ def test_setup_logging_json_in_production(capsys, monkeypatch):
     assert payload["message"] == "ship-me"
     assert payload["level"] == "WARNING"
     assert payload["logger"] == "app.test"
+
+
+def test_setup_logging_debug_does_not_enable_pymongo(monkeypatch):
+    monkeypatch.setattr("app.core.config.ENVIRONMENT", "development")
+    monkeypatch.setattr("app.core.config.LOG_LEVEL", "DEBUG")
+    setup_logging()
+    assert logging.getLogger("app").isEnabledFor(logging.DEBUG)
+    assert logging.getLogger("app.utils.mongo").isEnabledFor(logging.DEBUG)
+    assert not logging.getLogger("pymongo").isEnabledFor(logging.DEBUG)
+    assert not logging.getLogger("pymongo.topology").isEnabledFor(logging.DEBUG)

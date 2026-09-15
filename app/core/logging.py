@@ -40,6 +40,15 @@ _RESERVED_RECORD_KEYS = frozenset(
 _TEXT_FORMAT = "%(asctime)s %(levelname)-8s %(name)s %(message)s"
 _TEXT_DATEFMT = "%Y-%m-%dT%H:%M:%S"
 
+# Driver/client libraries spam DEBUG (e.g. pymongo topology heartbeats).
+_LIBRARY_LOGGERS = (
+    "pymongo",
+    "motor",
+    "httpx",
+    "httpcore",
+    "urllib3",
+)
+
 
 class JsonFormatter(logging.Formatter):
     """One JSON object per line for log shippers."""
@@ -81,8 +90,15 @@ def setup_logging() -> None:
     setattr(handler, _HANDLER_MARK, True)
 
     root = logging.getLogger()
-    root.setLevel(level)
+    # Libraries inherit this. Do not put DEBUG on root or pymongo heartbeats
+    # flood stdout when LOG_LEVEL=DEBUG.
+    root.setLevel(logging.INFO)
     _replace_stream_handlers(root, handler)
+
+    logging.getLogger("app").setLevel(level)
+
+    for name in _LIBRARY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
     for name in ("uvicorn", "uvicorn.error"):
         uv = logging.getLogger(name)

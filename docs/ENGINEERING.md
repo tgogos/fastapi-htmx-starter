@@ -151,7 +151,7 @@ Stdlib `logging` to **stdout** (Docker/12-factor). No log files, Loguru, or stru
 | `ENVIRONMENT` | `production` → one JSON object per line (for a log shipper). Anything else → human-readable text. |
 | `DEBUG` | When true, dump masked settings at startup (`log_config_values`). Independent of `LOG_LEVEL`. |
 
-Configure once in `app/core/logging.py` (`setup_logging` from the lifespan). Use `logging.getLogger(__name__)` in modules. Uvicorn access logs stay at INFO even if `LOG_LEVEL` is higher.
+Configure once in `app/core/logging.py` (`setup_logging` from the lifespan). Use `logging.getLogger(__name__)` in modules. `LOG_LEVEL` applies to the `app` logger (and uvicorn). The root logger stays at INFO so third-party DEBUG does not flood stdout. `pymongo` / `motor` / `httpx` / `httpcore` / `urllib3` are pinned to WARNING (PyMongo otherwise logs a topology heartbeat every ~10s at DEBUG). Uvicorn access logs stay at INFO even if `LOG_LEVEL` is higher.
 
 Do not log passwords, session cookies, Bearer tokens, or CSRF secrets. Examples: failed HTML login and failed `POST /api/auth/token` log `username=` only.
 
