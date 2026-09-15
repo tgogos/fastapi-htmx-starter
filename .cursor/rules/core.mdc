@@ -15,6 +15,7 @@ Follow `docs/ENGINEERING.md`. Summary for every change:
 - Keep Mongo and in-memory demos thin and removable. Do not “upgrade” them unless asked.
 - Python packaging: **uv** (`pyproject.toml` + `uv.lock`). No `requirements.txt`.
 - **HTML-first / HTMX** — server pages + fragments; vanilla JS islands only when needed (confirm modal, toasts, CSRF). Do not add Alpine/React/Vue/SPA build or client i18n by default (see `docs/ENGINEERING.md` § UI architecture).
+- Logging: stdlib stdout; `LOG_LEVEL`; JSON when `ENVIRONMENT=production`. No secrets in logs (`docs/ENGINEERING.md` § Logging).
 
 ## Primary path style
 

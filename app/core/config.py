@@ -3,8 +3,11 @@ import os
 from pathlib import Path
 
 # Third-party imports
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import dotenv_values, find_dotenv
+
+_LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 
 
 class Settings(BaseSettings):
@@ -26,7 +29,17 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
     DEBUG: str = "false"
+    LOG_LEVEL: str = "INFO"
     PUBLISH_PORT: int = 8000
+
+    @field_validator("LOG_LEVEL")
+    @classmethod
+    def _normalize_log_level(cls, value: str) -> str:
+        level = value.strip().upper()
+        if level not in _LOG_LEVELS:
+            allowed = ", ".join(sorted(_LOG_LEVELS))
+            raise ValueError(f"LOG_LEVEL must be one of: {allowed}")
+        return level
 
     # Session / auth
     SECRET_KEY: str = "change-me-in-production"
@@ -52,6 +65,7 @@ settings = Settings()
 VERSION: str = settings.VERSION
 ENVIRONMENT: str = settings.ENVIRONMENT
 DEBUG: bool = settings.DEBUG.lower() == "true"
+LOG_LEVEL: str = settings.LOG_LEVEL
 PUBLISH_PORT: int = settings.PUBLISH_PORT
 
 SECRET_KEY: str = settings.SECRET_KEY
@@ -87,8 +101,11 @@ def sqlite_path_from_url(database_url: str = DATABASE_URL) -> Path:
     return path.resolve()
 
 
-def print_config_values() -> None:
-    """Print configuration values with sources (DEBUG only)."""
+def log_config_values() -> None:
+    """Log configuration values with sources (DEBUG only; secrets masked)."""
+    import logging
+
+    log = logging.getLogger(__name__)
     env_file_path = Path(".env")
     env_file_data = {}
     if env_file_path.exists():
@@ -100,8 +117,8 @@ def print_config_values() -> None:
 
     os_env = os.environ
 
-    print("\n=== Configuration Values (with sources) ===")
-    for field_name, field in settings.model_fields.items():
+    log.info("=== Configuration Values (with sources) ===")
+    for field_name in settings.model_fields:
         value = getattr(settings, field_name)
 
         env_key = field_name
@@ -117,22 +134,20 @@ def print_config_values() -> None:
         else:
             display_value = repr(value) if value is not None else "None"
 
-        print(f"             {field_name}: {display_value} {source}")
+        log.info("  %s: %s %s", field_name, display_value, source)
 
-    print(
-        f"\n             MONGO_URI: mongodb://{MONGO_USER}:***@{MONGO_HOST}:"
-        f"{MONGO_PORT}/{MONGO_DATABASE}?authSource={MONGO_AUTH_SOURCE} [computed]"
+    log.info(
+        "  MONGO_URI: mongodb://%s:***@%s:%s/%s?authSource=%s [computed]",
+        MONGO_USER,
+        MONGO_HOST,
+        MONGO_PORT,
+        MONGO_DATABASE,
+        MONGO_AUTH_SOURCE,
     )
-    print(f"             DEBUG (bool): {DEBUG} [computed]")
-    print(f"             SQLITE_PATH: {sqlite_path_from_url()} [computed]")
-
-    print("\n=== Debug Information ===")
-    print(f"Working Directory: {os.getcwd()}")
-    print(f"PYTHONPATH: {os.getenv('PYTHONPATH', 'Not set')}")
+    log.info("  DEBUG (bool): %s [computed]", DEBUG)
+    log.info("  SQLITE_PATH: %s [computed]", sqlite_path_from_url())
+    log.info("=== Debug Information ===")
+    log.info("  Working Directory: %s", os.getcwd())
+    log.info("  PYTHONPATH: %s", os.getenv("PYTHONPATH", "Not set"))
     dotenv_path = find_dotenv() if not env_file_path.exists() else str(env_file_path)
-    print(f"ENV File: {dotenv_path if dotenv_path else 'Not found'}")
-    print("===========================================\n")
-
-
-if DEBUG:
-    print_config_values()
+    log.info("  ENV File: %s", dotenv_path if dotenv_path else "Not found")

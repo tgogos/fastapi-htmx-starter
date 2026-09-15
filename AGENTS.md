@@ -13,6 +13,7 @@ Before changing this repo, read [`docs/ENGINEERING.md`](docs/ENGINEERING.md) and
 - Primary domain is **books**. Demo routes stay named **items** (`/items`, `/db-items`).
 - Do not introduce new architectural patterns without updating `docs/ENGINEERING.md` in the same change.
 - Python deps: **uv** only (`pyproject.toml` + `uv.lock`). Do not add `requirements.txt`.
+- Logging: stdlib to stdout; `LOG_LEVEL` env; JSON when `ENVIRONMENT=production`. Do not log secrets. See `docs/ENGINEERING.md` § Logging.
 
 ## Scope
 

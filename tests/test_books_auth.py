@@ -1,5 +1,6 @@
 """Tests for /api/books, roles, API tokens, and browser auth."""
 
+import logging
 import os
 
 from fastapi.testclient import TestClient
@@ -342,6 +343,26 @@ class TestAuthWeb:
 
         again = client.get("/ui/books", follow_redirects=False)
         assert again.status_code == 303
+
+    def test_failed_login_logs_username_not_password(
+        self, client: TestClient, caplog
+    ):
+        page = client.get("/auth/login")
+        csrf = page.text.split('name="csrf_token" value="', 1)[1].split('"', 1)[0]
+        secret = "super-secret-password-not-for-logs"
+        with caplog.at_level(logging.WARNING, logger="app.web.auth_routes"):
+            response = client.post(
+                "/auth/login",
+                data={
+                    "username": "nobody",
+                    "password": secret,
+                    "csrf_token": csrf,
+                },
+                follow_redirects=False,
+            )
+        assert response.status_code == 400
+        assert "Login failed for username=nobody" in caplog.text
+        assert secret not in caplog.text
 
     def test_login_rejects_bad_csrf(self, client: TestClient):
         client.get("/auth/login")

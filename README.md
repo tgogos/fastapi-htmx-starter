@@ -93,6 +93,9 @@ Priority: OS environment → `.env` → defaults. See [`.env.example`](.env.exam
 |----------|--------|
 | `SECRET_KEY` | Session signing — change for any real deploy |
 | `DEMO_USERNAME` / `DEMO_PASSWORD` | Seeded only when no users exist |
+| `ENVIRONMENT` | `development` (text logs) or `production` (JSON logs) |
+| `LOG_LEVEL` | `DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL` (default `INFO`) |
+| `DEBUG` | When true, log a masked settings dump at startup |
 | `PUBLISH_PORT` | Host port (default `8000`) |
 | `DATABASE_URL` | SQLite URL (default `sqlite:///./data/app.db`) |
 | `MONGO_*` | Only needed for the Mongo demo |
@@ -106,7 +109,7 @@ app/
   routes/   # JSON API (/api/..., demos)
   web/      # HTML/HTMX templates + static (removable)
   models/   # Pydantic schemas
-  core/     # settings
+  core/     # settings + logging
 docs/       # ENGINEERING.md, auth.md
 pyproject.toml
 uv.lock

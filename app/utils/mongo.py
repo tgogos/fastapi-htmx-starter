@@ -1,4 +1,5 @@
 # Standard library imports
+import logging
 from typing import Optional
 
 # Third-party imports
@@ -7,6 +8,8 @@ from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, Dupli
 
 # Local imports
 from app.core import config
+
+logger = logging.getLogger(__name__)
 
 # Global database connection
 client: Optional[AsyncIOMotorClient] = None
@@ -38,16 +41,20 @@ async def connect_to_mongo() -> None:
         # Get database
         database = client[config.MONGO_DATABASE]
         
-        print(f"✅ Connected to MongoDB at {config.MONGO_HOST}:{config.MONGO_PORT}")
+        logger.info(
+            "Connected to MongoDB at %s:%s",
+            config.MONGO_HOST,
+            config.MONGO_PORT,
+        )
         
-    except ConnectionFailure as e:
-        print(f"❌ MongoDB connection failed: {e}")
+    except ConnectionFailure:
+        logger.exception("MongoDB connection failed")
         raise
-    except ServerSelectionTimeoutError as e:
-        print(f"❌ MongoDB server selection timeout: {e}")
+    except ServerSelectionTimeoutError:
+        logger.exception("MongoDB server selection timeout")
         raise
-    except Exception as e:
-        print(f"❌ Unexpected MongoDB connection error: {e}")
+    except Exception:
+        logger.exception("Unexpected MongoDB connection error")
         raise
 
 
@@ -57,7 +64,7 @@ async def close_mongo_connection() -> None:
     
     if client:
         client.close()
-        print("🔌 MongoDB connection closed")
+        logger.info("MongoDB connection closed")
 
 
 def get_database() -> AsyncIOMotorDatabase:

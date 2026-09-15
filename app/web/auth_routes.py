@@ -1,5 +1,6 @@
 """HTML auth routes: login / logout."""
 
+import logging
 import secrets
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -19,6 +20,7 @@ from app.web.paths import TEMPLATES_DIR
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+logger = logging.getLogger(__name__)
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -50,6 +52,7 @@ async def login_submit(
 ):
     db_user = await get_user_by_username(username.strip())
     if db_user is None or not verify_password(password, db_user["password_hash"]):
+        logger.warning("Login failed for username=%s", username.strip())
         return templates.TemplateResponse(
             request,
             "login.html",

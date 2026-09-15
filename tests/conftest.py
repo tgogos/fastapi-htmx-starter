@@ -12,6 +12,8 @@ _TEST_DB = Path(__file__).resolve().parent / ".test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB}"
 os.environ["SECRET_KEY"] = "test-secret-key-for-pytest"
 os.environ["DEBUG"] = "false"
+os.environ.setdefault("ENVIRONMENT", "development")
+os.environ.setdefault("LOG_LEVEL", "INFO")
 os.environ.setdefault("DEMO_USERNAME", "admin")
 os.environ.setdefault("DEMO_PASSWORD", "admin123")
 os.environ.setdefault("MONGO_HOST", "mongodb")
@@ -40,8 +42,13 @@ def clear_items_storage():
 
 
 @pytest.fixture(autouse=True)
-def clear_books_and_extra_users(client):
+def clear_books_and_extra_users(request):
     """Clear books and non-demo users between tests; keep demo admin."""
+    if request.node.get_closest_marker("no_client"):
+        yield
+        return
+
+    request.getfixturevalue("client")
     db_path = Path(os.environ["DATABASE_URL"].removeprefix("sqlite:///"))
     demo = os.environ["DEMO_USERNAME"]
 

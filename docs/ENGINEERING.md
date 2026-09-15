@@ -141,6 +141,20 @@ In-memory and Mongo demos remain unauthenticated unless that changes deliberatel
 
 Implemented: session + CSRF for the UI and for session-authenticated `/api` writes; `POST/DELETE /api/auth/token` + opaque tokens in `api_tokens`; `require_user` accepts Bearer or session; Swagger shows HTTP Bearer via `HTTPBearer` on API deps.
 
+## Logging
+
+Stdlib `logging` to **stdout** (Docker/12-factor). No log files, Loguru, or structlog.
+
+| Setting | Role |
+|---------|------|
+| `LOG_LEVEL` | `DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL`. Default `INFO`. How chatty the app is. |
+| `ENVIRONMENT` | `production` → one JSON object per line (for a log shipper). Anything else → human-readable text. |
+| `DEBUG` | When true, dump masked settings at startup (`log_config_values`). Independent of `LOG_LEVEL`. |
+
+Configure once in `app/core/logging.py` (`setup_logging` from the lifespan). Use `logging.getLogger(__name__)` in modules. Uvicorn access logs stay at INFO even if `LOG_LEVEL` is higher.
+
+Do not log passwords, session cookies, Bearer tokens, or CSRF secrets. Examples: failed HTML login and failed `POST /api/auth/token` log `username=` only.
+
 ## Schema / local SQLite
 
 `CREATE TABLE IF NOT EXISTS` does not migrate existing databases. Startup runs a small additive migrate for new `books` columns when missing; for larger shape changes, delete local `data/*.db` (and test DBs) and restart. The starter prefers recreate / tiny ALTER helpers over Alembic.
@@ -160,6 +174,7 @@ Implemented: session + CSRF for the UI and for session-authenticated `/api` writ
 - Separate dependencies for JSON vs HTML auth: `require_user` (Bearer or session) vs `require_user_html` + `LoginRequired` (session only); plus `require_editor` / `require_admin` (and HTML variants).
 - Opaque API tokens hashed (SHA-256) in `api_tokens`; plaintext returned once from `POST /api/auth/token`.
 - Settings via Pydantic Settings (`app/core/config.py`).
+- Stdlib logging to stdout (`app/core/logging.py`); `LOG_LEVEL` env; JSON when `ENVIRONMENT=production`.
 - Shared identity helpers in `app/auth/` (passwords, users, tokens, deps). HTTP routes live in `app/routes/` (JSON) and `app/web/` (HTML).
 - **uv** for Python deps: `pyproject.toml` + committed `uv.lock`; Docker installs with `uv sync --frozen`. Do not reintroduce `requirements.txt` as a second source of truth. Target CPython **3.14** (`.python-version`, `requires-python`).
 
@@ -174,3 +189,4 @@ Unless this document is updated first:
 - OAuth2 / OIDC providers
 - JWT as the default API token
 - Django-style generic admin
+- Loguru / structlog, log files inside the container, or a bundled log shipper

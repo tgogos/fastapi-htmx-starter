@@ -1,4 +1,5 @@
 # Standard library imports
+import logging
 from contextlib import asynccontextmanager
 
 # Third-party imports
@@ -10,9 +11,12 @@ from starlette.middleware.sessions import SessionMiddleware
 # Local imports
 from app.auth.exceptions import LoginRequired
 from app.core import config
+from app.core.logging import setup_logging
 from app.routes import root, items, db_items, books, api_auth
 from app.web import auth_routes, books_routes
 from app.web.paths import STATIC_DIR
+
+logger = logging.getLogger(__name__)
 
 description = """
 ### Root
@@ -46,10 +50,20 @@ async def lifespan(app: FastAPI):
     from app.db.connection import connect_to_sqlite, close_sqlite
     from app.auth.seed import seed_demo_user
 
+    setup_logging()
+    logger.info(
+        "Starting %s (%s, LOG_LEVEL=%s)",
+        app.title,
+        config.ENVIRONMENT,
+        config.LOG_LEVEL,
+    )
+    if config.DEBUG:
+        config.log_config_values()
     await connect_to_mongo()
     await connect_to_sqlite()
     await seed_demo_user()
     yield
+    logger.info("Shutting down")
     await close_sqlite()
     await close_mongo_connection()
 

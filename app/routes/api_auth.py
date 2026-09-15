@@ -1,5 +1,6 @@
 """JSON auth API: token issue, current user, and revoke."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,6 +13,7 @@ from app.auth.users import get_user_by_username
 from app.models.auth import TokenRequest, TokenResponse, UserPublic
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Require a Bearer token for revoke (session alone has no token to delete)
 _bearer_required = HTTPBearer(
@@ -28,6 +30,7 @@ _bearer_required = HTTPBearer(
 async def issue_token(body: TokenRequest) -> TokenResponse:
     user = await get_user_by_username(body.username.strip())
     if user is None or not verify_password(body.password, user["password_hash"]):
+        logger.warning("API token issue failed for username=%s", body.username.strip())
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

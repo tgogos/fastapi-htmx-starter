@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Optional
 
 import aiosqlite
 
 from app.core import config
+
+logger = logging.getLogger(__name__)
 
 _connection: Optional[aiosqlite.Connection] = None
 
@@ -30,7 +33,7 @@ async def connect_to_sqlite() -> aiosqlite.Connection:
     await _connection.commit()
     await _migrate_books_columns(_connection)
 
-    print(f"✅ Connected to SQLite at {db_path}")
+    logger.info("Connected to SQLite at %s", db_path)
     return _connection
 
 
@@ -61,7 +64,7 @@ async def _migrate_books_columns(conn: aiosqlite.Connection) -> None:
         await conn.execute(sql)
     if alters:
         await conn.commit()
-        print(f"✅ Migrated books table (+{len(alters)} columns)")
+        logger.info("Migrated books table (+%s columns)", len(alters))
 
     # Safe after columns exist (new DB via schema.sql, or ALTER above).
     await conn.execute(
@@ -82,7 +85,7 @@ async def close_sqlite() -> None:
     if _connection is not None:
         await _connection.close()
         _connection = None
-        print("🔌 SQLite connection closed")
+        logger.info("SQLite connection closed")
 
 
 def get_connection() -> aiosqlite.Connection:

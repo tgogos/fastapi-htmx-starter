@@ -1,8 +1,12 @@
 """Seed demo user when the users table is empty."""
 
+import logging
+
 from app.auth.passwords import hash_password
 from app.auth.users import count_users, create_user
 from app.core import config
+
+logger = logging.getLogger(__name__)
 
 
 async def seed_demo_user() -> None:
@@ -13,7 +17,4 @@ async def seed_demo_user() -> None:
         hash_password(config.DEMO_PASSWORD),
         role="admin",
     )
-    print(
-        f"✅ Seeded demo admin {config.DEMO_USERNAME!r} "
-        f"(password from DEMO_PASSWORD / defaults)"
-    )
+    logger.info("Seeded demo admin username=%s", config.DEMO_USERNAME)
