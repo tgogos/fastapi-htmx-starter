@@ -111,6 +111,47 @@ class TestBooksApi:
         assert by_isbn.status_code == 200
         assert by_isbn.json()["total_count"] == 1
 
+    def test_list_ordering(self, auth_client: TestClient):
+        headers = session_csrf_headers(auth_client)
+        for title, year in (("Zebra Tales", 1999), ("Aardvark Tales", 2001)):
+            assert (
+                auth_client.post(
+                    f"{API_BOOKS}/",
+                    json={"title": title, "author": "Sorter", "year": year},
+                    headers=headers,
+                ).status_code
+                == 201
+            )
+
+        asc = auth_client.get(f"{API_BOOKS}/", params={"ordering": "title", "q": "Tales"})
+        assert [item["title"] for item in asc.json()["items"]] == [
+            "Aardvark Tales",
+            "Zebra Tales",
+        ]
+        desc = auth_client.get(
+            f"{API_BOOKS}/", params={"ordering": "-title", "q": "Tales"}
+        )
+        assert [item["title"] for item in desc.json()["items"]] == [
+            "Zebra Tales",
+            "Aardvark Tales",
+        ]
+        plain = auth_client.get(f"{API_BOOKS}/", params={"q": "Tales"})
+        unknown = auth_client.get(
+            f"{API_BOOKS}/", params={"ordering": "drop table", "q": "Tales"}
+        )
+        assert unknown.status_code == 200
+        assert [item["title"] for item in unknown.json()["items"]] == [
+            item["title"] for item in plain.json()["items"]
+        ]
+
+        by_year = auth_client.get(
+            f"{API_BOOKS}/", params={"ordering": "-year", "q": "Tales"}
+        )
+        assert [item["title"] for item in by_year.json()["items"]] == [
+            "Aardvark Tales",
+            "Zebra Tales",
+        ]
+
 
 class TestRoles:
     def test_viewer_cannot_write(self, client: TestClient, sample_book_data: dict):

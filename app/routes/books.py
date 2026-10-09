@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.auth.deps import require_editor, require_user
 from app.db import books as books_repo
-from app.db.books import BOOK_CATEGORIES
+from app.db.books import BOOK_CATEGORIES, normalize_ordering
 from app.models.book import BookCreate, BookResponse, BookUpdate, PaginatedBooks
 
 router = APIRouter()
@@ -71,6 +71,10 @@ async def list_books(
     added_by_user_id: int | None = Query(None, description="Filter by adder user id"),
     year_min: int | None = Query(None, ge=0, le=9999),
     year_max: int | None = Query(None, ge=0, le=9999),
+    ordering: str | None = Query(
+        None,
+        description="Sort key. Prefix - for descending. Unknown values use newest first.",
+    ),
 ) -> PaginatedBooks:
     if category is not None and category not in BOOK_CATEGORIES:
         raise HTTPException(status_code=422, detail="Invalid category")
@@ -84,6 +88,7 @@ async def list_books(
         added_by_user_id=added_by_user_id,
         year_min=year_min,
         year_max=year_max,
+        ordering=normalize_ordering(ordering),
     )
     return PaginatedBooks(
         items=[_parse_response(r) for r in rows],

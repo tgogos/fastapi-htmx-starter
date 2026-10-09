@@ -103,7 +103,7 @@ Primary mounts:
 | UI list / HTMX | `/ui/books` (full page or partial via `HX-Request`) |
 | Advanced search | `/ui/books/search` (filters outside swap target) |
 | Staff | `/ui/admin/users` (admin only) |
-| JSON API | `/api/books` (reads: login; writes: editor+; filter query params) |
+| JSON API | `/api/books` (reads: login; writes: editor+; filter query params; allowlisted `ordering`) |
 | Root | `/` → `/ui/books` |
 
 Demos remain at `/items` and `/db-items`.
@@ -111,6 +111,8 @@ Demos remain at `/items` and `/db-items`.
 ### Books fields and N+1
 
 Books include scalars (`category`, `isbn`, `page_count`, `available`) and `added_by_user_id` → `users`. List/get **LEFT JOIN** users so `added_by_username` is loaded in the same query — do not resolve the adder with a per-row `get_user_by_id` (classic N+1).
+
+`GET /api/books` accepts `ordering`. The value must be an allowlisted column, with an optional `-` prefix for descending (`title`, `-year`, `added_by`, and the other list columns, plus `created_at`). Anything else, including a missing value, sorts newest first (`-created_at`). The sort text comes from that map, never from the query string. The Pico list does not send `ordering`, so its pages stay newest first.
 
 ### HTMX patterns in use
 

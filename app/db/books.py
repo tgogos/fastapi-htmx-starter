@@ -25,6 +25,35 @@ BOOK_CATEGORIES = frozenset(
     }
 )
 
+# Newest first when the caller does not ask. The Pico list does not send ordering.
+DEFAULT_ORDERING = "-created_at"
+
+# Allowlisted only. Never interpolate a raw query value into ORDER BY.
+ORDER_SQL: dict[str, str] = {
+    "title": "b.title COLLATE NOCASE ASC",
+    "-title": "b.title COLLATE NOCASE DESC",
+    "author": "b.author COLLATE NOCASE ASC",
+    "-author": "b.author COLLATE NOCASE DESC",
+    "category": "b.category COLLATE NOCASE ASC",
+    "-category": "b.category COLLATE NOCASE DESC",
+    "year": "b.year IS NULL ASC, b.year ASC",
+    "-year": "b.year IS NULL ASC, b.year DESC",
+    "page_count": "b.page_count IS NULL ASC, b.page_count ASC",
+    "-page_count": "b.page_count IS NULL ASC, b.page_count DESC",
+    "available": "b.available ASC",
+    "-available": "b.available DESC",
+    "added_by": "u.username COLLATE NOCASE ASC",
+    "-added_by": "u.username COLLATE NOCASE DESC",
+    "created_at": "b.created_at ASC",
+    "-created_at": "b.created_at DESC",
+}
+
+
+def normalize_ordering(ordering: Optional[str]) -> str:
+    if ordering and ordering in ORDER_SQL:
+        return ordering
+    return DEFAULT_ORDERING
+
 _BOOK_SELECT = """
     SELECT
         b.id,
@@ -189,9 +218,11 @@ async def list_books(
     added_by_user_id: Optional[int] = None,
     year_min: Optional[int] = None,
     year_max: Optional[int] = None,
+    ordering: Optional[str] = None,
 ) -> tuple[list[dict[str, Any]], int]:
     """List books with filters. Username comes from JOIN (not per-row lookups)."""
     conn = get_connection()
+    order_sql = ORDER_SQL[normalize_ordering(ordering)]
     where, params = _build_filters(
         q=q,
         category=category,
@@ -212,7 +243,7 @@ async def list_books(
         f"""
         {_BOOK_SELECT}
         {where}
-        ORDER BY b.created_at DESC
+        ORDER BY {order_sql}, b.id ASC
         LIMIT ? OFFSET ?
         """,
         [*params, size, offset],
