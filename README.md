@@ -2,7 +2,7 @@
 
 Boilerplate for a **server-driven web UI with FastAPI + HTMX** (no SPA, no Node build) that also exposes a **JSON REST API** for other clients (mobile apps, scripts, etc.).
 
-Browsers get HTML (Jinja + [Pico CSS](https://picocss.com/) + [HTMX](https://htmx.org/)). Machines get `/api` with Bearer tokens. One user store, Docker Compose, pytest.
+Browsers get HTML (Jinja + [Pico CSS](https://picocss.com/) + [HTMX 4.0.1](https://four.htmx.org/docs)). Machines get `/api` with Bearer tokens. One user store, Docker Compose, pytest.
 
 **UI approach:** HTML-first hypermedia (server-rendered pages + HTMX fragments; small vanilla JS islands). Deliberately not an SPA — see [`docs/ENGINEERING.md`](docs/ENGINEERING.md) § UI architecture.
 

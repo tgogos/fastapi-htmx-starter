@@ -290,6 +290,33 @@ class TestAuthWeb:
         )
         assert page.status_code == 200
 
+    def test_books_history_restore_is_a_full_page(self, auth_client: TestClient):
+        partial = auth_client.get("/ui/books", headers={"HX-Request": "true"})
+        assert partial.status_code == 200
+        assert "<html" not in partial.text.lower()
+
+        restored = auth_client.get(
+            "/ui/books",
+            headers={
+                "HX-Request": "true",
+                "HX-History-Restore-Request": "true",
+            },
+        )
+        assert restored.status_code == 200
+        assert "<html" in restored.text.lower()
+        assert "htmx.min.js" in restored.text
+
+        search = auth_client.get(
+            "/ui/books/search",
+            headers={
+                "HX-Request": "true",
+                "HX-History-Restore-Request": "true",
+            },
+        )
+        assert search.status_code == 200
+        assert "<html" in search.text.lower()
+        assert "Search books" in search.text
+
     def test_ui_includes_confirm_dialog_and_toast_region(
         self, auth_client: TestClient
     ):

@@ -47,6 +47,16 @@ CATEGORY_CHOICES: list[tuple[str, str]] = [
 ]
 
 
+def _wants_books_partial(request: Request) -> bool:
+    """HTMX 4 refetches on Back/Forward and sends HX-Request with that refetch.
+
+    A history restore must get the full page. A normal swap still gets the table fragment.
+    """
+    if request.headers.get("HX-History-Restore-Request") == "true":
+        return False
+    return request.headers.get("HX-Request") == "true"
+
+
 def _can_edit(user: dict) -> bool:
     return role_at_least(user["role"], "editor")
 
@@ -303,7 +313,7 @@ async def books_page(
     data = await _books_page_data(base_path="/ui/books", page=page, size=size, q=q)
     template = (
         "partials/books_table.html"
-        if request.headers.get("HX-Request") == "true"
+        if _wants_books_partial(request)
         else "books.html"
     )
     return templates.TemplateResponse(request, template, _ctx(request, user, **data))
@@ -351,7 +361,7 @@ async def books_search_page(
     )
     template = (
         "partials/books_table.html"
-        if request.headers.get("HX-Request") == "true"
+        if _wants_books_partial(request)
         else "books_search.html"
     )
     return templates.TemplateResponse(

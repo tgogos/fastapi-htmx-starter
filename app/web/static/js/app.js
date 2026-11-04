@@ -139,14 +139,16 @@
     showToast(detail.message, detail.level);
   });
 
-  document.body.addEventListener("htmx:configRequest", function (event) {
+  document.body.addEventListener("htmx:config:request", function (event) {
     var meta = document.querySelector('meta[name="csrf-token"]');
-    if (!meta) {
+    var ctx = event.detail && event.detail.ctx;
+    var headers = ctx && ctx.request && ctx.request.headers;
+    if (!meta || !headers) {
       return;
     }
     var token = meta.getAttribute("content");
-    if (token && !event.detail.headers["X-CSRF-Token"]) {
-      event.detail.headers["X-CSRF-Token"] = token;
+    if (token && !headers["X-CSRF-Token"]) {
+      headers["X-CSRF-Token"] = token;
     }
   });
 })();
