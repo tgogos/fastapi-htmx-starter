@@ -17,6 +17,7 @@ This file is the source of truth for architecture and conventions. When a decisi
 - From 4.0.1, a new trigger on an element cancels a pending `delay` or `throttle` on that same element (same as 2.x). Debounced search relies on that.
 - Back and Forward refetch the URL and still send `HX-Request`. `_wants_books_partial` returns the full page when `HX-History-Restore-Request` is set, and the table fragment otherwise. `/ui/books` and `/ui/books/search` both use it.
 - HTTP 4xx and 5xx responses swap into the HTMX target.
+- An expired or missing session on an HTMX request must not return a normal `303` to `/auth/login`. HTMX would follow it and swap the login page into the fragment target. The `LoginRequired` handler returns `204` with `HX-Redirect: /auth/login` when `HX-Request` is set, so the whole window navigates. Full-page visits still use `303`.
 
 ## UI architecture (HTML-first)
 
@@ -133,6 +134,8 @@ See **UI architecture** for the HTML-first contract. Patterns below are what thi
 - Progressive enhancement: pagination links keep usable `href`s.
 - **Confirm modal** — Pico `<dialog>` + small JS (`app/web/static/js/app.js`); delete buttons use `hx-trigger="confirmed-delete"` after the user confirms (no `window.confirm`).
 - **Toasts** — minimal custom CSS toasts; server sets `HX-Trigger: {"showToast": {...}}` (e.g. after delete).
+- **Session expiry under HTMX** — see **HTMX 4** above. Do not “fix” this with a login fragment inside a panel.
+- **Polling / heartbeats (future)** — this starter does not poll to keep a session alive. If a fork adds `hx-trigger="every …"` (or similar) for live updates, treat that traffic as background: it must not silently extend an idle session forever, and an expired session must still use `HX-Redirect` (or a full-page lock screen), never a login form swapped into a small target. Prefer short-lived tokens or an explicit “still here?” flow over a keepalive that defeats timeout.
 
 ## Authentication
 
@@ -140,7 +143,7 @@ Teaching overview (cookies, CSRF, Bearer): [`auth.md`](auth.md).
 
 One user store; two client mechanisms:
 
-1. **Browsers / HTMX** — signed session cookie. Mutating HTML/HTMX requests require CSRF (`require_user_html`, `verify_csrf`).
+1. **Browsers / HTMX** — signed session cookie. Mutating HTML/HTMX requests require CSRF (`require_user_html`, `verify_csrf`). `LoginRequired` uses `303` for full pages and `HX-Redirect` for HTMX (see **HTMX 4**).
 2. **Machine clients** — opaque Bearer token from `POST /api/auth/token` (username/password). Store tokens in SQLite so revocation is deleting a row. Do not default to JWT unless this document is updated to say so.
 3. **Protected JSON routes** — `require_user` accepts a valid session **or** a valid Bearer token. If the client uses the **session cookie** on a mutating method (`POST`/`PUT`/`PATCH`/`DELETE`), CSRF is required (`X-CSRF-Token` header or form field). **Bearer requests skip CSRF.** Role gates: `require_editor`, `require_admin`.
 4. **Same-origin JS calling `/api`** — either send the session cookie with `credentials: "include"` **and** `X-CSRF-Token` (from the page meta tag), or use a Bearer token. Prefer Bearer for non-HTML clients; session+CSRF is fine for page scripts.

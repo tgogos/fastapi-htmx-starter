@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 # Third-party imports
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -15,6 +15,8 @@ from app.core.logging import setup_logging
 from app.routes import root, items, db_items, books, api_auth
 from app.web import auth_routes, books_routes
 from app.web.paths import STATIC_DIR
+
+LOGIN_PATH = "/auth/login"
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +91,12 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.exception_handler(LoginRequired)
 async def login_required_handler(request: Request, exc: LoginRequired):
-    return RedirectResponse(url="/auth/login", status_code=303)
+    # A normal 303 is fine for a full page load. HTMX follows that redirect and
+    # would swap the login HTML into the fragment target (a login form inside
+    # the books panel). HX-Redirect navigates the whole window instead.
+    if request.headers.get("HX-Request") == "true":
+        return Response(status_code=204, headers={"HX-Redirect": LOGIN_PATH})
+    return RedirectResponse(url=LOGIN_PATH, status_code=303)
 
 
 # JSON API (demos stay at top level; primary path under /api)
