@@ -2,74 +2,73 @@
 
 [![Docker test](https://github.com/tgogos/fastapi-htmx-starter/actions/workflows/docker-test.yml/badge.svg)](https://github.com/tgogos/fastapi-htmx-starter/actions/workflows/docker-test.yml)
 
-Boilerplate for a **server-driven web UI with FastAPI + HTMX** (no SPA, no Node build) that also exposes a **JSON REST API** for other clients (mobile apps, scripts, etc.).
+A FastAPI boilerplate you fork and grow, kept boring on purpose. The same app serves the people who use the pages and the programs that call its API. Pages are server-rendered HTML, with HTMX and [Pico CSS](https://picocss.com/), so the UI has no build step. The database is SQLite and SQL written by hand, so there is no ORM. The aim is a lightweight start, with few dependencies, that you can still read as it grows.
 
-Browsers get HTML (Jinja + [Pico CSS](https://picocss.com/) + [HTMX 4.0.1](https://four.htmx.org/docs)). Machines get `/api` with Bearer tokens. One user store, Docker Compose, pytest.
+## What it uses
 
-**UI approach:** HTML-first hypermedia (server-rendered pages + HTMX fragments; small vanilla JS islands). Deliberately not an SPA — see [`docs/ENGINEERING.md`](docs/ENGINEERING.md) § UI architecture.
+- **FastAPI**, async on the request path. **Pydantic** validates HTTP input and output.
+- **SQLite**, with parameterized SQL and no ORM.
+- **Jinja** templates and **HTMX 4.0.1**, styled with Pico. Static CSS and JS under `app/web/static/` — no Node toolchain.
+- A cookie session and CSRF for the pages. Opaque Bearer tokens for `/api`.
+- **Docker Compose**, [uv](https://docs.astral.sh/uv/), and pytest. Python 3.14.
 
-Architecture and conventions: [`docs/ENGINEERING.md`](docs/ENGINEERING.md).  
-Sessions, CSRF, and Bearer explained: [`docs/auth.md`](docs/auth.md).
+## What is already wired
 
-## Primary path vs demos
+Books is included as an example, with list, create, edit, and delete in the browser. Search, filters, and pagination swap part of the page and update the URL. That is the HTMX these screens are here to show. An admin can list users and change roles.
 
-| | Role |
-|--|------|
-| **Primary** | SQLite **books** · roles (viewer / editor / admin) · session + CSRF for `/ui` and `/auth` · Bearer (or session) for `/api/books` · Pico/HTMX UI |
-| **Demos** (thin, removable) | `/items` in-memory CRUD · `/db-items` MongoDB CRUD — teaching surfaces, not the main app |
+Each user has a role. A **viewer** can read. An **editor** can change books. An **admin** can also manage roles.
 
-Fork and grow the primary path. Keep demos minimal or delete them.
+Two extra HTTP examples sit outside the Pico UI. `/items` is an in-memory list. `/db-items` shows the same idea with async MongoDB (Motor). While those demos ship here, Compose starts Mongo and the app connects on startup; the full test suite needs that Mongo too. A fork that does not want them deletes the demo code and dependencies — there is no switch to leave Mongo off.
+
+Books is the reference domain when you add your own data: reuse its contracts and patterns. The steps are in [`docs/ENGINEERING.md`](docs/ENGINEERING.md).
+
+## A good fit
+
+This repo fits a thin server-rendered app that grows from the books path, with a JSON API in the same process and a minimal Pico shell.
+
+Look elsewhere for an ORM and migrations, background jobs, OAuth, or a client-side frontend. For a fuller admin shell (sidebar, settings, richer tables), see the sibling [FastAPI HTMX Basecoat](https://github.com/tgogos/fastapi-htmx-basecoat) repo.
 
 ## Quick start
 
-**Requires:** Docker Compose. Make is optional. Dependencies are managed with [uv](https://docs.astral.sh/uv/) (`pyproject.toml` + `uv.lock`).
+**Requires:** Docker Compose. Python 3.14 if you run the app on the host. Make is optional. Dependencies are managed with uv (`pyproject.toml` + `uv.lock`).
 
 ```bash
 make dotenv   # .env.example → .env
 make upd      # build + start (detached)
 
-# http://localhost:8000           → redirects to /ui/books
-# http://localhost:8000/ui/books  → UI (login first)
+# http://localhost:8000           → /ui/books (login first)
 # http://localhost:8000/auth/login
-# http://localhost:8000/docs      → OpenAPI (JSON API only)
+# http://localhost:8000/ui/books
+# http://localhost:8000/docs      → OpenAPI (JSON API)
 ```
 
-Demo user (seeded when `users` is empty) is an **admin**: `DEMO_USERNAME` / `DEMO_PASSWORD` (defaults `admin` / `admin123`). Change these and **`SECRET_KEY`** before any shared deploy.
-
-Optional sample data (viewer + editor users, many books with categories/ISBN/availability) — idempotent, safe to re-run:
+The first start creates an **admin** when the users table is empty: `DEMO_USERNAME` / `DEMO_PASSWORD` (defaults `admin` / `admin123`). Change these and **`SECRET_KEY`** before any shared deploy.
 
 ```bash
-make seed
-# viewer / demo123   editor / demo123
-# Advanced filters: /ui/books/search
+make seed     # optional viewer and editor (password demo123) and sample books
+make test
+make down
 ```
 
-After pulling schema changes, delete local SQLite files under `data/` (and restart) if the app fails on missing columns/tables — this starter recreates schema rather than migrating.
+After pulling schema changes, delete local SQLite files under `data/` (and restart) if the app fails on missing columns or tables — this starter recreates schema rather than migrating.
 
-```bash
-make test     # pytest in the app container
-make down     # stop
-```
+On push and pull request to `main`, GitHub Actions runs the same Compose build and pytest path (`.github/workflows/docker-test.yml`). It does not push an image.
 
 ### Local development with uv (optional)
 
+Compose remains the supported way to run the full stack and `make test`. On the host you still need a reachable Mongo for lifespan and for `pytest` (set `MONGO_HOST` and the other `MONGO_*` values, or leave Compose’s Mongo published and point at it).
+
 ```bash
-# Install uv: https://docs.astral.sh/uv/getting-started/installation/
-uv sync --all-groups          # or: make sync
-source .venv/bin/activate     # or: uv run …
+uv sync --all-groups
 uv run fastapi dev app/main.py --port 8000 --host 0.0.0.0
 uv run pytest
 ```
 
-After changing dependencies in `pyproject.toml`, run `uv lock` (or `make lock`) and commit `uv.lock`.
+## Auth
 
-## Auth in brief
+Pages keep a cookie session. A form or an HTMX request that changes data also sends a CSRF token.
 
-See [`docs/auth.md`](docs/auth.md) for the full picture (cookies, CSRF, Bearer).
-
-- **Browser / HTMX:** cookie session + CSRF on mutating HTML (`/auth`, `/ui`).
-- **API:** Bearer via `POST /api/auth/token`, or session cookie. Session writes to `/api` need `X-CSRF-Token` (same token as `<meta name="csrf-token">` on UI pages). Bearer skips CSRF.
-- **Page JS → `/api`:** `credentials: "include"` + `X-CSRF-Token`, or `Authorization: Bearer …`.
+The JSON API accepts an opaque Bearer token from `POST /api/auth/token`. It also accepts the session cookie. A session that writes to `/api` still sends `X-CSRF-Token`. A Bearer token does not.
 
 ```bash
 curl -s -X POST http://localhost:8000/api/auth/token \
@@ -77,15 +76,7 @@ curl -s -X POST http://localhost:8000/api/auth/token \
   -d '{"username":"admin","password":"admin123"}'
 ```
 
-## Stack notes
-
-- Python **3.14** (see `.python-version`); dependencies via **uv** (`pyproject.toml` + committed `uv.lock`). No `requirements.txt`.
-- Async-first (aiosqlite, Motor for the Mongo demo).
-- SQL without an ORM (`schema.sql` + parameterized queries).
-- Pydantic for request/response schemas only.
-- No frontend toolchain: templates + static HTMX/Pico/JS.
-
-Details and non-negotiables: [`docs/ENGINEERING.md`](docs/ENGINEERING.md).
+Sessions, CSRF, and Bearer tokens: [`docs/auth.md`](docs/auth.md).
 
 ## Configuration
 
@@ -100,30 +91,36 @@ Priority: OS environment → `.env` → defaults. See [`.env.example`](.env.exam
 | `DEBUG` | When true, log a masked settings dump at startup |
 | `PUBLISH_PORT` | Host port (default `8000`) |
 | `DATABASE_URL` | SQLite URL (default `sqlite:///./data/app.db`) |
-| `MONGO_*` | Only needed for the Mongo demo |
+| `MONGO_*` | Needed while the Mongo demo ships (Compose sets these) |
 
 ## Layout
 
 ```
 app/
-  auth/     # passwords, users, tokens, deps
-  db/       # SQLite connection + schema (primary)
-  routes/   # JSON API (/api/..., demos)
-  web/      # HTML/HTMX templates + static (removable)
-  models/   # Pydantic schemas
-  core/     # settings + logging
-docs/       # ENGINEERING.md, auth.md
+  auth/     # passwords, users, tokens, route checks
+  db/       # SQLite connection, schema, and SQL
+  routes/   # JSON API, plus the /items and /db-items examples
+  web/      # HTML, HTMX, and the Pico shell
+  models/   # Pydantic request and response schemas
+  core/     # settings and logging
+docs/
 pyproject.toml
 uv.lock
 ```
 
 ## Removing pieces
 
-- **No UI:** delete `app/web/`; drop static mount and web routers in `main.py`.
-- **No Mongo demo:** drop `db_items` / `mongo` helpers, lifespan connect, Compose `mongodb` service.
+- **No UI:** delete `app/web/`; drop the static mount and web routers in `main.py`.
+- **No Mongo demo:** drop `db_items` / `mongo` helpers, the lifespan connect, Compose `mongodb`, and the related tests and dependencies.
 - **No memory demo:** drop `app/routes/items.py` and its include.
 
-More checklist detail lives in git history / `ENGINEERING.md` if you need it; the primary app does not depend on the demos.
+More detail: [`docs/ENGINEERING.md`](docs/ENGINEERING.md) § Product shape.
+
+## Further reading
+
+- Architecture and conventions: [`docs/ENGINEERING.md`](docs/ENGINEERING.md)
+- Sessions, CSRF, and Bearer tokens: [`docs/auth.md`](docs/auth.md)
+- Richer admin shell sibling: [fastapi-htmx-basecoat](https://github.com/tgogos/fastapi-htmx-basecoat)
 
 ## License
 
