@@ -14,8 +14,9 @@ Follow `docs/ENGINEERING.md`. Summary for every change:
 - Pydantic = request/response only, not the database layer.
 - Keep Mongo and in-memory demos thin and removable. Do not “upgrade” them unless asked.
 - Python packaging: **uv** (`pyproject.toml` + `uv.lock`). No `requirements.txt`.
-- **HTML-first / HTMX** — server pages + fragments; vanilla JS islands only when needed (confirm modal, toasts, CSRF). HTMX is pinned to **4.0.1** (`app/web/static/js/htmx.min.js`); use [four.htmx.org](https://four.htmx.org/docs). Do not add Alpine/React/Vue/SPA build or client i18n by default (see `docs/ENGINEERING.md` § UI architecture).
+- **HTML-first / HTMX** — server pages + fragments; vanilla JS islands only when needed (confirm modal, toasts, CSRF). HTMX is pinned to **4.0.1** (`app/web/static/js/htmx.min.js`); use [four.htmx.org](https://four.htmx.org/docs). Do not add Alpine/React/Vue/SPA build or client i18n by default (see `docs/ENGINEERING.md` § UI architecture). Keep Pico unless asked otherwise.
 - Logging: stdlib stdout; `LOG_LEVEL`; JSON when `ENVIRONMENT=production`. No secrets in logs (`docs/ENGINEERING.md` § Logging).
+- Auth handler params use Annotated aliases (`UserDep`, `HtmlUserDep`, …). Generic FastAPI skill defaults (SQLModel, JWT, SPA) do not override `ENGINEERING.md`.
 
 ## Primary path style
 
@@ -33,8 +34,9 @@ await conn.execute("INSERT INTO ...")
 ## URLs and auth intent
 
 - `/api` → JSON (machines); `/auth` → HTML session; `/ui` → pages + HTMX partials (no `/htmx` prefix).
-- Browsers: session + CSRF. API: opaque Bearer tokens in SQLite (not JWT by default). `require_user` accepts session or Bearer; **session + mutating `/api` requires CSRF**; Bearer does not.
+- Browsers: session + CSRF. API: opaque Bearer tokens in SQLite (not JWT by default). `require_user` / `UserDep` accepts session or Bearer; **session + mutating `/api` requires CSRF**; Bearer does not.
 - Roles: viewer / editor / admin. Primary domain is **books** (`/api/books`, `/ui/books`). Demo routes stay `/items` and `/db-items`.
+- FastAPI CLI entrypoint: `[tool.fastapi] entrypoint = "app.main:app"`.
 
 ## When you change architecture
 

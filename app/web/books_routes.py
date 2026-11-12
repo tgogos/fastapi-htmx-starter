@@ -10,10 +10,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from app.auth.deps import (
+    HtmlAdminDep,
+    HtmlEditorDep,
+    HtmlUserDep,
     get_or_create_csrf_token,
-    require_admin_html,
-    require_editor_html,
-    require_user_html,
     verify_csrf,
 )
 from app.auth.users import (
@@ -305,7 +305,7 @@ def _parse_book_form(
 @router.get("/books", response_class=HTMLResponse)
 async def books_page(
     request: Request,
-    user: dict = Depends(require_user_html),
+    user: HtmlUserDep,
     page: int = Query(1, ge=1),
     size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=100),
     q: str | None = Query(None),
@@ -322,7 +322,7 @@ async def books_page(
 @router.get("/books/search", response_class=HTMLResponse)
 async def books_search_page(
     request: Request,
-    user: dict = Depends(require_user_html),
+    user: HtmlUserDep,
     page: int = Query(1, ge=1),
     size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=100),
     q: str | None = Query(None),
@@ -378,7 +378,7 @@ async def books_search_page(
 )
 async def create_book(
     request: Request,
-    user: dict = Depends(require_editor_html),
+    user: HtmlEditorDep,
     title: str = Form(...),
     author: str = Form(...),
     year: str = Form(""),
@@ -429,7 +429,7 @@ async def create_book(
 async def edit_book_form(
     request: Request,
     book_id: str,
-    user: dict = Depends(require_editor_html),
+    user: HtmlEditorDep,
 ):
     book = await books_repo.get_book(book_id)
     if book is None:
@@ -456,7 +456,7 @@ async def edit_book_form(
 async def book_row(
     request: Request,
     book_id: str,
-    user: dict = Depends(require_user_html),
+    user: HtmlUserDep,
 ):
     book = await books_repo.get_book(book_id)
     if book is None:
@@ -487,7 +487,7 @@ async def book_row(
 async def update_book(
     request: Request,
     book_id: str,
-    user: dict = Depends(require_editor_html),
+    user: HtmlEditorDep,
     title: str = Form(...),
     author: str = Form(...),
     year: str = Form(""),
@@ -553,7 +553,7 @@ async def update_book(
 async def delete_book(
     request: Request,
     book_id: str,
-    user: dict = Depends(require_editor_html),
+    user: HtmlEditorDep,
     page: int = Query(1, ge=1),
     size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=100),
     q: str | None = Query(None),
@@ -612,7 +612,7 @@ async def delete_book(
 @router.get("/admin/users", response_class=HTMLResponse)
 async def admin_users_page(
     request: Request,
-    user: dict = Depends(require_admin_html),
+    user: HtmlAdminDep,
 ):
     users = await list_users()
     return templates.TemplateResponse(
@@ -637,7 +637,7 @@ async def admin_users_page(
 async def admin_set_role(
     request: Request,
     user_id: int,
-    user: dict = Depends(require_admin_html),
+    user: HtmlAdminDep,
     role: str = Form(...),
 ):
     role = normalize_role(role.strip())

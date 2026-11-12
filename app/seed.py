@@ -313,7 +313,7 @@ async def run_seed() -> None:
         if created_users:
             print(
                 f"✅ Seeded users: {', '.join(created_users)} "
-                f"(password {SAMPLE_PASSWORD!r})"
+                "(password: see README)"
             )
         else:
             print("ℹ️  Sample users already present (viewer, editor)")

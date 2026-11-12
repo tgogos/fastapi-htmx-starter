@@ -124,9 +124,10 @@ async def require_user(
     return user
 
 
-async def require_editor(
-    user: dict[str, Any] = Depends(require_user),
-) -> dict[str, Any]:
+UserDep = Annotated[dict[str, Any], Depends(require_user)]
+
+
+async def require_editor(user: UserDep) -> dict[str, Any]:
     if not role_at_least(user["role"], "editor"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -135,9 +136,10 @@ async def require_editor(
     return user
 
 
-async def require_admin(
-    user: dict[str, Any] = Depends(require_user),
-) -> dict[str, Any]:
+EditorDep = Annotated[dict[str, Any], Depends(require_editor)]
+
+
+async def require_admin(user: UserDep) -> dict[str, Any]:
     if not role_at_least(user["role"], "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -146,12 +148,18 @@ async def require_admin(
     return user
 
 
+AdminDep = Annotated[dict[str, Any], Depends(require_admin)]
+
+
 async def require_user_html(request: Request) -> dict[str, Any]:
     """Require login for HTML routes; redirects via LoginRequired handler."""
     user = await get_session_user(request)
     if user is None:
         raise LoginRequired()
     return user
+
+
+HtmlUserDep = Annotated[dict[str, Any], Depends(require_user_html)]
 
 
 async def require_editor_html(request: Request) -> dict[str, Any]:
@@ -164,6 +172,9 @@ async def require_editor_html(request: Request) -> dict[str, Any]:
     return user
 
 
+HtmlEditorDep = Annotated[dict[str, Any], Depends(require_editor_html)]
+
+
 async def require_admin_html(request: Request) -> dict[str, Any]:
     user = await require_user_html(request)
     if not role_at_least(user["role"], "admin"):
@@ -172,3 +183,6 @@ async def require_admin_html(request: Request) -> dict[str, Any]:
             detail="Admin role required",
         )
     return user
+
+
+HtmlAdminDep = Annotated[dict[str, Any], Depends(require_admin_html)]

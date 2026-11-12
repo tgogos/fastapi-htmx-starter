@@ -1,5 +1,7 @@
 # FastAPI HTMX Starter
 
+[![Docker test](https://github.com/tgogos/fastapi-htmx-starter/actions/workflows/docker-test.yml/badge.svg)](https://github.com/tgogos/fastapi-htmx-starter/actions/workflows/docker-test.yml)
+
 Boilerplate for a **server-driven web UI with FastAPI + HTMX** (no SPA, no Node build) that also exposes a **JSON REST API** for other clients (mobile apps, scripts, etc.).
 
 Browsers get HTML (Jinja + [Pico CSS](https://picocss.com/) + [HTMX 4.0.1](https://four.htmx.org/docs)). Machines get `/api` with Bearer tokens. One user store, Docker Compose, pytest.
