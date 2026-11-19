@@ -8,7 +8,7 @@ A FastAPI boilerplate you fork and grow, kept boring on purpose. The same app se
 
 - **FastAPI**, async on the request path. **Pydantic** validates HTTP input and output.
 - **SQLite**, with parameterized SQL and no ORM.
-- **Jinja** templates and **HTMX 4.0.1**, styled with Pico. Static CSS and JS under `app/web/static/` — no Node toolchain.
+- **Jinja** templates and **HTMX 4.0.2**, styled with Pico. Static CSS and JS under `app/web/static/` — no Node toolchain.
 - A cookie session and CSRF for the pages. Opaque Bearer tokens for `/api`.
 - **Docker Compose**, [uv](https://docs.astral.sh/uv/), and pytest. Python 3.14.
 
