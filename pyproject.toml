@@ -5,7 +5,7 @@ description = "FastAPI + HTMX boilerplate with SQLite auth and a JSON API"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi[standard]==0.162.2",
+    "fastapi[standard]==0.165.0",
     "pydantic-settings==2.16.2",
     "motor==3.7.1",
     "pymongo==4.19.0",
